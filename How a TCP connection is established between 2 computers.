@@ -1,0 +1,45 @@
+A TCP connection is established with the completition of a Three-way handshake.
+Suppose there is a computer on network1,we call this computer as computer1 and 
+there is another computer on network2, let us call it as computer2.
+Suppose the 2 networks are connected to same router.
+Let us define the IP address of the computers,networks and routers.
+
+Computer1  has IP address: 10.1.1.100
+Network1 has IP address  : 10.1.1.0/24
+
+Computer2 has IP address : 172.16.1.100
+Network2 has IP address  : 172.16.1.0/24
+
+The network interface of Router that is connected to network1 has IP address: 10.1.1.1
+The network interface of Router that is connected to network2 has IP address: 172.16.1.1
+
+Suppose computer1 wants to establish a TCP connection with computer2.
+Computer2 types 172.16.1.100(IP address of computer2) in its web browser. Then the web browser
+communicates with the local Networking stack which is a part of operating system responsible for handling Networking functions.
+The web browser tells that he wants to establish a TCP connection to 172.16.1.100.
+The networking stack will now examine its own subnet.It sees that it lives on network 10.1.1.0/24 which means the destination address is on another network.
+At this point computer1 knows that it has to send data to its gateway for routing to a remote network and its been configured with a gateway of 10.1.1.1.
+The computer1 looks at its ARP table to find the MAC address of its gateway.But it doesn't find any corresponding entry.
+Now computer1 sends an ARP request for an IP address of 10.1.1.1 which it sends to the broadcast address which is all F's (i.e. FF:FF:FF:FF:FF:FF) in its local network.
+When the Router receives this ARP message, it sees that its the device that is currently assigned yhe IP address of 10.1.1.1 , so it responds to computer1 to let it know about its MAC address.
+Computer1 receives this ARP response and now it knows the MAC address of its gateway.This means that now its ready to start constructing the outbound packet.
+Computer1 knows that it has been asked by web browser to form an outbound TCP connection which means it will need an outbound TCP port.
+The operating system of computer1 identifies the Ephermal port of 50000 being available and opens a socket connecting the web browser to this port.
+Since it is a TCP connection,the networking stack knows that before can actually transmit any data it will need to establish a connection.
+The networking stack starts to build a TCP segment.It fills in all the appropriate fields including a source port:50000  and a destination port:80 .Sequence number is choosen and filled.Finally the SYN flag is set and the checksum for this segment is calculated and written to its checksum field.
+Our newly constructed TCP segment is now passed along the IP layer of networking stack.Yhis layer constructs the IP HEADER.
+This header is filled with a source IP,destination IP  and a TTL( time to live) field of 64( 64 is the standard value for this field).The value in the TTL fields indicates that it the packet can pass a maximum of this routers and after that it will be thrown.
+Next TCP segment is inserted as data payload for the IP datagram and a checksum value is calculated for the whole datagram. Now IP datagram is constructed. Computer1 needs to get this to its gateway of which it now knows the MAC Address.
+So an ETHERNET FRAME is constructed and all data is filled more relevantly the source and destination MAC address is filled.Finally the IP datagram is inserted as data payload for ETHERNET FRAME and another checksum is calculated. Now we have entire Ethernet Frame ready to be send across PHYSICAL LAYER( First layer of the 5 Layer Network model).
+The network interface connected to computer1 sends its Binary Data as modulation of the voltage of electrical current across a CAT6 cable that is connected between computer1 and a network switch.This switch receives the frame and inspects the destination MAC address. The switch knows which of its interfaces the MAC address is attached to and forwards the frame to the only cable connected to this interface.
+At the other end of this link is Router which receives the frame and recognises its own hardware address as the destination MAC address and knows that this frame is intended for itself.
+So now it calculate checksum against the frame . The router confirms this checksum against the frame. Router confirms this checksum with one that at Ethernet header and confirms that it is matched meaning all of the data has maded in one piece.
+Now Router strips away the ethernet frame leaving it with that the IP datagram, again t perform a checksum calculation against the entire datagram and finds that it matches meaning all the data is correct.
+Then the router inspects the destination IP address and performs the lookup in its Routing table and finds that the destination IP address of 172.16.1.100 is on a locally connected network. It decrements the TTL by 1,calculate new checksum and made the IP datagram. Then this new IP datagram is encapsulated by a new ethernet frame with the routers address as the source MAC address and computer2 MAC address as the destination MAC address.
+And the whole process repeats one last time. The frame sends out to network2. A switch ensures that it sends out of the interface the computer2 is connected. Computer2 receives the frame identifies its own MAC address as destination address and knows that this packet is intended for itself.
+Computer2 strips away the ethernet frame leaving away the IP datagram.It checks the destination IP as its own IP.The it strips away the IP datagram leaving away the TCP segment,checksum for this layer is examine and everything checks out.Computer2 examines Destination port(i.e. 80).
+The networking stack on computer2  checks to ensure that there is an open socket on port 80 which there is.Its in the LISTEN state and hold open by running APACHE server. Computer2 than sees that this packet has SYN flag set so it examines the sequence number and stores that. Since it will need to put that sequence number in the Acknowledge field once it grasp the response.
+Untill all we have done is sent a single TCP segment with a SYN flag set from computer1 to computer2.
+Now everything will happen again so that computer2 will send a TCP responds with SYN/ACK fields set.
+The all again computer1 sends a TCP segment with ACK flag set to computer2.
+And  now a Three-way handshake is completed between both the computers and  a TCP connection is established between them.
